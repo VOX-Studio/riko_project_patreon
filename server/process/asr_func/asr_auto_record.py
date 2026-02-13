@@ -154,7 +154,7 @@ if __name__ == "__main__":
             channels=1,
             silence_threshold=0.005,            # Adjust based on your microphone sensitivity
             silence_duration=1,                 # Stop after 3 seconds of silence
-            device=2                            # Use default device, or specify by ID or name
+            device=int(os.getenv("AUDIO_DEVICE_ID")) if os.getenv("AUDIO_DEVICE_ID") else None                           # Use default device, or specify by ID or name
         )
     
     user_spoken_text = transcribe_audio(whisper_model, aud_path=conversation_recording)

@@ -266,13 +266,17 @@ def test_audio_recording():
         test_audio_path.parent.mkdir(parents=True, exist_ok=True)
         
         print_info("Recording... (speak now!)")
+        load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+        dev = os.getenv("AUDIO_INPUT_DEVICE", "").strip()
+        device = int(dev) if dev.isdigit() else (dev if dev else None)
+
         record_on_speech(
             output_file=str(test_audio_path),
             samplerate=44100,
             channels=1,
-            silence_threshold=0.02,
-            silence_duration=2,
-            device=None
+            silence_threshold=0.005,
+            silence_duration=1,
+            device=device
         )
         
         if test_audio_path.exists() and test_audio_path.stat().st_size > 1000:
