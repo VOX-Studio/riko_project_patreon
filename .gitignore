@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+server/__pycache__/server.cpython-310.pyc
+.env
+faiss_cache/
+client/audio/
+chat_history.json
+/*.wav
+audio/
+character_files/chat_logs

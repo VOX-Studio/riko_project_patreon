@@ -1,0 +1,25 @@
+accelerate
+numpy<2.0
+scipy
+librosa==0.10.2
+numba
+pytorch-lightning>=2.4
+gradio>5
+ffmpeg-python
+torchaudio
+modelscope==1.10.0
+transformers>=4.43
+PyYAML
+fastapi[standard]>=0.115.2
+pydantic<=2.10.6
+ctranslate2>=4.0,<5
+huggingface_hub>=0.13
+tokenizers>=0.13,<1
+av
+sentence-transformers
+faster-whisper
+sounddevice
+openai
+faiss-cpu ==1.12.0
+google-genai
+groq
