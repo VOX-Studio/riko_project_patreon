@@ -105,7 +105,10 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 if not OPENAI_API_KEY:
     raise EnvironmentError('Please set OPENAI_API_KEY in your environment')
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8000/v1")
+client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
+
 
 # ---------------------------
 # History utilities
@@ -126,44 +129,56 @@ def save_history(history):
 # Streaming helper
 # ---------------------------
 
+def to_chat_messages(history):
+    out = []
+    for m in history:
+        role = m.get("role", "user")
+        content = m.get("content", "")
+
+        # Riko stocke souvent content sous forme de liste de blocs {"type": "...", "text": "..."}
+        if isinstance(content, list):
+            text = "".join(
+                part.get("text", "")
+                for part in content
+                if isinstance(part, dict)
+            ).strip()
+        else:
+            text = str(content).strip()
+
+        if text:
+            out.append({"role": role, "content": text})
+    return out
+
+
 def stream_text_chunks(messages, min_len=30, max_len=120):
-    """Synchronous generator that yields text chunks as the model streams.
-
-    Uses the OpenAI Responses streaming client like your example.
-    """
+    chat_messages = to_chat_messages(messages)
     buffer = ""
-
-    with client.responses.stream(
+    stream = client.chat.completions.create(
         model=MODEL,
-        input=messages,
-        temperature=1,
-        top_p=1,
-        max_output_tokens=2048,
-    ) as stream:
+        messages=chat_messages,
+        temperature=1.0,
+        top_p=1.0,
+        stream=True,
+        max_tokens=1024,
+    )
 
-        for event in stream:
-            # event.type values: "response.output_text.delta", "response.output_text.done", ...
-            if event.type == "response.output_text.delta":
-                buffer += event.delta
+    for part in stream:
+        delta = part.choices[0].delta.content
+        if not delta:
+            continue
 
-                # Rule 1: yield if buffer ends with punctuation AND is long enough
-                if buffer.endswith(('.', '?', '!', '…')) and len(buffer) >= min_len:
-                    yield buffer.strip()
-                    buffer = ""
+        buffer += delta
 
-                # Rule 2: force yield if buffer gets too long
-                elif len(buffer) >= max_len:
-                    yield buffer.strip()
-                    buffer = ""
+        # On coupe en morceaux pour TTS (ponctuation ou longueur)
+        if buffer.endswith((".", "?", "!", "…")) and len(buffer) >= min_len:
+            yield buffer.strip()
+            buffer = ""
+        elif len(buffer) >= max_len:
+            yield buffer.strip()
+            buffer = ""
 
-            elif event.type == "response.output_text.done":
-                # Final flush
-                if buffer.strip():
-                    yield buffer.strip()
-                # After final flush we'll exit the context; final response object is available
-
-        final_response = stream.get_final_response()
-        # Optionally return final_response (can't return from generator).
+    if buffer.strip():
+        yield buffer.strip()
 
 # ---------------------------
 # Playback worker (single-threaded sequential playback)

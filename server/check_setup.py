@@ -5,6 +5,9 @@ Tests each component in sequence with user-friendly feedback and troubleshooting
 """
 
 import os
+from xmlrpc import client
+from networkx import config
+from openai import OpenAI, api_key, base_url
 import sys
 import time
 import json
@@ -15,6 +18,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import sounddevice as sd
 import numpy as np
+
 
 # Color codes for terminal output
 class Colors:
@@ -62,7 +66,15 @@ def test_config_and_keys():
     
     # Check .env file
     print_info("Checking .env file...")
-    load_dotenv()
+    project_root = Path(__file__).resolve().parents[1]   # .../riko_project_patreon
+    load_dotenv(dotenv_path=project_root / ".env")
+
+
+    OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8000/v1")
+    OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY", "sk-local-dummy")
+
+    print("BASE_URL =", OPENAI_BASE_URL)
+    print("API_KEY  =", OPENAI_API_KEY)
     
     if not os.path.exists('.env'):
         print_warning(".env file not found in current directory")
@@ -85,9 +97,14 @@ def test_config_and_keys():
     # Check Groq API Key
     print_info("Checking Groq API Key...")
     groq_key = os.getenv('GROQ_API_KEY')
+    is_local_llm = "127.0.0.1" in OPENAI_BASE_URL or "localhost" in OPENAI_BASE_URL
+
     if not groq_key:
-        print_error("GROQ_API_KEY not set in environment")
-        issues.append("GROQ_API_KEY not set")
+        if is_local_llm:
+            print_warning("GROQ_API_KEY non défini (OK si tu utilises le LLM local GGUF)")
+        else:
+            print_error("GROQ_API_KEY not set in environment")
+            issues.append("GROQ_API_KEY not set")
     else:
         print_success(f"Groq API Key found (starts with: {groq_key[:10]}...)")
     
@@ -162,15 +179,34 @@ def test_llm():
             print("  2. Restart your terminal/IDE after adding the key")
             return False
         
-        client = OpenAI(api_key=api_key)
-        
-        print_info("Sending test message to OpenAI...")
+        # Recharge .env depuis la racine (robuste)
+        project_root = Path(__file__).resolve().parents[1]
+        load_dotenv(dotenv_path=project_root / ".env")
+
+        base_url = os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8000/v1")
+        api_key  = os.getenv("OPENAI_API_KEY", "sk-local-dummy")
+
+        # Récupère le modèle depuis character_config.yaml
+        config_path = project_root / "character_config.yaml"
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+
+        model_id = config.get("model")
+        if not model_id:
+            print_error("Le champ 'model' est vide dans character_config.yaml")
+            return False
+
+        client = OpenAI(api_key=api_key, base_url=base_url)
+
+        print_info(f"Sending test message to local LLM at {base_url} ...")
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model_id,
             messages=[
-                {"role": "user", "content": "Say 'Hello! LLM test successful.' and nothing else."}
+                {"role": "system", "content": "Réponds uniquement par: OK"},
+                {"role": "user", "content": "OK ?"}
             ],
-            max_tokens=50
+            temperature=0.0,
+            max_tokens=10
         )
         
         response_text = response.choices[0].message.content

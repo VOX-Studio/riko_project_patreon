@@ -2,7 +2,7 @@
 waifu_name: riko
 gpu_acceleration: cpu 
 history_file: chat_history.json
-model: "gpt-4.1-mini"
+model: "E:\\models\\Qwen2.5-7B-Instruct-Q4_K_M.gguf"
 presets:
   default:
     system_prompt: |

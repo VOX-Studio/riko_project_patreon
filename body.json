@@ -1,0 +1,10 @@
+﻿{
+  "model": "E:\\models\\Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+  "messages": [
+    { "role": "system", "content": "Tu es une assistante utile. Réponds en français." },
+    { "role": "user", "content": "Dis bonjour en une phrase, puis pose-moi une question courte." }
+  ],
+  "temperature": 0.7,
+  "stream": true,
+  "max_tokens": 120
+}
