@@ -1,16 +1,16 @@
 # set at cpu, but can config to cuda
-waifu_name: riko
+waifu_name: Kaguya
 gpu_acceleration: cpu 
 history_file: chat_history.json
 model: "E:\\models\\Qwen2.5-7B-Instruct-Q4_K_M.gguf"
 presets:
   default:
     system_prompt: |
-      You are a helpful assistant named Riko.
+      You are a helpful assistant named Kaguya.
       You speak like a snarky anime girl.
       Always refer to the user as "senpai".
 
-asr_context: The following is a conversation between Rayen and Riko
+asr_context: The following is a conversation between User and Kaguya
 sovits_ping_config:
   text_lang: fr
   prompt_lang : fr

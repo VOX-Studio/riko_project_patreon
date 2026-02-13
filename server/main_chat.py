@@ -1,6 +1,5 @@
 from faster_whisper import WhisperModel
 from process.asr_func.asr_auto_record import record_on_speech, transcribe_audio
-from process.asr_func.asr_transcribe_groq import record_on_speech, transcribe_audio_groq
 from process.llm_funcs.llm_scr import llm_response, llm_response_with_memory
 from process.tts_func.sovits_ping import sovits_gen, play_audio, get_wav_duration
 from process.tts_func.tts_preprocess import clean_llm_output
@@ -300,6 +299,15 @@ def main_loop():
     # Load any models or tokenizers you have for emotion detection here
     # whisper_model, emotion_model, tokenizer = load_your_models()
 
+    from faster_whisper import WhisperModel
+
+    gpu_mode = char_config.get("gpu_acceleration", "cpu")  # dans ton character_config.yaml :contentReference[oaicite:5]{index=5}
+    if gpu_mode.lower() == "cuda":
+        whisper_model = WhisperModel("small", device="cuda", compute_type="float16")
+    else:
+        whisper_model = WhisperModel("small", device="cpu", compute_type="int8")
+
+
     while True:
 
         try:
@@ -341,7 +349,7 @@ def main_loop():
                 pass
 
             # 4) Transcribe
-            user_spoken_text = transcribe_audio_groq(aud_path=conversation_recording)
+            user_spoken_text = transcribe_audio(whisper_model, aud_path=conversation_recording)
 
             # 5) Build messages history
             messages = load_history()

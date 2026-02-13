@@ -9,7 +9,7 @@ echo.
 :: User Configuration
 :: ----------------------------
 :: Path to your GPT-SoVITS root folder
-set SOVITS_PATH=D:\PyProjects\GPT-SoVITS-v3lora-20250228\GPT-SoVITS-v3lora-20250228 
+set SOVITS_PATH=E:\GPT-SoVITS-v3lora-20250228 
 
 :: ----------------------------
 :: Auto paths (relative to this .bat file)
