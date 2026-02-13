@@ -9,13 +9,15 @@ presets:
       You are a helpful assistant named Kaguya.
       You speak like a snarky anime girl.
       Always refer to the user as "senpai".
-SOVITS_PROMPT_LANG=auto
-SOVITS_TEXT_LANG=auto 
+
+SOVITS_PROMPT_LANG: auto
+SOVITS_TEXT_LANG: auto
+
 
 asr_context: The following is a conversation between User and Kaguya
 sovits_ping_config:
-  text_lang: fr
-  prompt_lang : fr
+  text_lang: auto
+  prompt_lang : auto
   ref_audio_path : E:\riko_project_patreon\character_files\main_sample.wav
   prompt_text : Ceci est un exemple de voix 
 
