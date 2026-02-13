@@ -4,10 +4,22 @@ import time
 import soundfile as sf 
 import sounddevice as sd
 import yaml
+from pathlib import Path
+
 
 # Load YAML config
 with open('character_config.yaml', 'r') as f:
-    char_config = yaml.safe_load(f)
+    char_config = load_char_config()
+
+def load_char_config():
+    root = Path(__file__).resolve().parents[3]  # .../server/process/tts_func -> remonte au repo
+    cfg_path = root / "character_config.yaml"
+    try:
+        return yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+    except Exception as e:
+        print(f"[TTS] ERREUR YAML dans {cfg_path}: {e}")
+        return {}
+
 
 def get_wav_duration(path):
     with sf.SoundFile(path) as f:
@@ -33,36 +45,35 @@ def sovits_set_default_reference(refer_wav_path, prompt_text, prompt_language="a
     return r.json()
 
 
+import requests
+
 def sovits_gen(in_text, output_wav_pth="output.wav"):
-    """
-    Génère un wav via GPT-SoVITS API (ton build v3lora écoute sur POST /).
-    Important: utiliser prompt_language/text_language = "auto" sinon KeyError 'fr'.
-    """
-    import os
-    import requests
-    from pathlib import Path
+    char_config = load_char_config()
 
-    # URL API (port 9880 chez toi)
-    base_url = os.getenv("SOVITS_URL", "http://127.0.0.1:9880").rstrip("/")
-    url = f"{base_url}/"
+    url = char_config.get("tts", {}).get("sovits_url", "http://127.0.0.1:9880/")
+    refer = char_config.get("tts", {}).get("refer_wav_path", r"E:\riko_project_patreon\audio\test_recording.wav")
+    prompt_text = char_config.get("tts", {}).get("prompt_text", "Bonjour, ceci est un enregistrement de test.")
 
-    # IMPORTANT: 'fr' fait planter ton serveur => auto
     payload = {
-        "text": str(in_text),
+        "text": in_text,
         "text_language": "auto",
+        "refer_wav_path": refer,
+        "prompt_text": prompt_text,
         "prompt_language": "auto",
-        # si ton serveur a un default refer via /change_refer, tu peux laisser ces 2 champs,
-        # MAIS c'est plus robuste de les envoyer quand même :
-        "refer_wav_path": os.getenv("SOVITS_REFER_WAV", r"E:\riko_project_patreon\audio\test_recording.wav"),
-        "prompt_text": os.getenv("SOVITS_PROMPT_TEXT", "Bonjour, ceci est un enregistrement de test."),
         "top_k": 15,
         "top_p": 1.0,
         "temperature": 1.0,
-        "speed": 1.0,
+        "speed": 1.0
     }
 
-    out_path = Path(output_wav_pth)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    r = requests.post(url, json=payload, timeout=120)
+    r.raise_for_status()
+
+    with open(output_wav_pth, "wb") as f:
+        f.write(r.content)
+
+    return output_wav_pth
+
 
     # Astuce anti-fichier 21 bytes: Connection close + pas de stream
     headers = {
