@@ -1,5 +1,5 @@
-{
+﻿{
   "refer_wav_path": "E:\\riko_project_patreon\\audio\\test_recording.wav",
   "prompt_text": "Bonjour, ceci est un enregistrement de test.",
-  "prompt_language": "fr"
+  "prompt_language": "auto"
 }
