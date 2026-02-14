@@ -86,8 +86,8 @@ with open(CONFIG_PATH, 'r') as f:
     char_config = yaml.safe_load(f)
 
 HISTORY_FILE = char_config['history_file']
-MODEL = char_config.get('model', 'gpt-4.1-mini')
-# MODEL = 'gpt-4.1'
+MODEL = char_config.get('model', 'Qwen2.5-7B-Instruct-Q4_K_M.gguf')
+# MODEL = 'Qwen2.5-7B-Instruct-Q4_K_M.gguf'
 CASE_SYSTEM_PROMPT = "You are a helpful assistant." # override for testing.
 
 SYSTEM_PROMPT = [
