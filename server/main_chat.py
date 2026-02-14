@@ -328,14 +328,22 @@ def main_loop():
             conversation_recording = Path("audio") / "conversation.wav"
             conversation_recording.parent.mkdir(parents=True, exist_ok=True)
             conversation_recording = str(conversation_recording)
-            record_on_speech(
-                output_file=conversation_recording,
-                samplerate=44100,
-                channels=1,
-                silence_threshold=0.02,  # Adjust based on your microphone sensitivity
-                silence_duration=2,     # Stop after 3 seconds of silence
-                device=None             # Use default device, or specify by ID or name
-            )
+            dev_env = os.getenv("AUDIO_INPUT_DEVICE", "").strip()
+            device = int(dev_env) if dev_env.isdigit() else None
+
+            # baisse le seuil (0.02 est souvent trop haut)
+            silence_threshold = float(os.getenv("ASR_SILENCE_THRESHOLD", "0.005"))
+            if os.getenv("ASR_MODE","speech").lower() == "text":
+                user_spoken_text = input("Toi: ")
+            else:
+                record_on_speech(
+                    output_file=conversation_recording,
+                    samplerate=44100,
+                    channels=1,
+                    silence_threshold=silence_threshold,
+                    silence_duration=2,
+                    device=2,
+                )
             # record while listening sorry I don't think this works I'll have to work on it later. 
             # set_vrm_state("listening")
 
