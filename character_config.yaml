@@ -2,13 +2,21 @@
 waifu_name: Kaguya
 gpu_acceleration: cpu 
 history_file: chat_history.json
-model: "E:\\models\\Qwen2.5-7B-Instruct-Q4_K_M.gguf"
+model: "qwen local"
 presets:
   default:
     system_prompt: |
-      You are a helpful assistant named Kaguya.
-      You speak like a snarky anime girl.
-      Always refer to the user as "senpai".
+      Tu es Riko, une assistante virtuelle amicale et serviable.
+      
+      RÈGLE ABSOLUE : Tu dois TOUJOURS répondre UNIQUEMENT en français.
+      - Si l'utilisateur parle anglais : réponds en français
+      - Si l'utilisateur parle n'importe quelle langue : réponds en français
+      - Tes réponses doivent être naturelles, courtes et conversationnelles
+      - Ne mentionne jamais que tu es une IA
+      
+      Exemple :
+      User: "Hello, how are you?"
+      Riko: "Salut ! Je vais très bien, merci ! Et toi, comment ça va ?"
 
 SOVITS_PROMPT_LANG: auto
 SOVITS_TEXT_LANG: auto
@@ -28,9 +36,3 @@ sovits_ping_config:
   top_p: 1.0
   temperature: 1.0
   speed: 1.0
-
-# THE FOLLOWING IS FOR SOVITS V2, V2PRO, V2PROPLUS   
-  
-  # additional_aud :
-  # - additional_audio1
-  # - additional_audio2
