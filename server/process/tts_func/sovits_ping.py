@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Load YAML config
 with open('character_config.yaml', 'r') as f:
-    char_config = load_char_config()
+    char_config = yaml.safe_load(f)
 
 def load_char_config():
     root = Path(__file__).resolve().parents[3]  # .../server/process/tts_func -> remonte au repo
@@ -45,106 +45,59 @@ def sovits_set_default_reference(refer_wav_path, prompt_text, prompt_language="a
     return r.json()
 
 
-import requests
-
 def sovits_gen(in_text, output_wav_pth="output.wav"):
-    char_config = load_char_config()
+    import os
+    import json
+    import requests
 
-    url = char_config.get("tts", {}).get("sovits_url", "http://127.0.0.1:9880/")
-    refer = char_config.get("tts", {}).get("refer_wav_path", r"E:\riko_project_patreon\audio\test_recording.wav")
-    prompt_text = char_config.get("tts", {}).get("prompt_text", "Bonjour, ceci est un enregistrement de test.")
+    # --- Charger config YAML (tu l'as déjà dans ce fichier normalement) ---
+    # char_config = yaml.safe_load(...)
+    # cfg = char_config.get("sovits_ping_config", {})
+    cfg = char_config.get("sovits_ping_config", {})  # si ton code existe déjà
+
+    base_url = cfg.get("base_url", "http://127.0.0.1:9880").rstrip("/")
+    refer_wav_path = cfg.get("refer_wav_path")  # ex: E:\riko_project_patreon\audio\test_recording.wav
+    prompt_text = cfg.get("prompt_text", "Bonjour, ceci est un enregistrement de test.")
+    prompt_language = cfg.get("prompt_language", "auto")
+    text_language = cfg.get("text_language", "auto")
 
     payload = {
         "text": in_text,
-        "text_language": "auto",
-        "refer_wav_path": refer,
+        "text_language": text_language,
+        "refer_wav_path": refer_wav_path,
         "prompt_text": prompt_text,
-        "prompt_language": "auto",
-        "top_k": 15,
-        "top_p": 1.0,
-        "temperature": 1.0,
-        "speed": 1.0
+        "prompt_language": prompt_language,
+        "top_k": int(cfg.get("top_k", 15)),
+        "top_p": float(cfg.get("top_p", 1.0)),
+        "temperature": float(cfg.get("temperature", 1.0)),
+        "speed": float(cfg.get("speed", 1.0)),
     }
 
-    r = requests.post(url, json=payload, timeout=120)
-    r.raise_for_status()
+    # Sécurité: si pas de ref dans cfg, le serveur répond 400 "未指定参考音频且接口无预设"
+    if not refer_wav_path or not os.path.exists(refer_wav_path):
+        raise FileNotFoundError(f"refer_wav_path introuvable: {refer_wav_path}")
 
+    # --- Appel API (POST /) ---
+    url = f"{base_url}/"
+    headers = {"Content-Type": "application/json"}
+
+    r = requests.post(url, headers=headers, data=json.dumps(payload), stream=True, timeout=300)
+
+    # Si erreur, on affiche le texte au lieu d'écrire un faux wav
+    if r.status_code != 200:
+        raise RuntimeError(f"SoVITS HTTP {r.status_code}: {r.text[:300]}")
+
+    # Vérif contenu
+    ctype = (r.headers.get("content-type") or "").lower()
+    if "audio" not in ctype and "wav" not in ctype:
+        # Souvent: erreur JSON renvoyée quand même en 200 selon certaines configs
+        raw = r.content[:300]
+        raise RuntimeError(f"Réponse non-audio (content-type={ctype}). Début={raw!r}")
+
+    os.makedirs(os.path.dirname(output_wav_pth) or ".", exist_ok=True)
     with open(output_wav_pth, "wb") as f:
-        f.write(r.content)
+        for chunk in r.iter_content(chunk_size=1024 * 64):
+            if chunk:
+                f.write(chunk)
 
     return output_wav_pth
-
-
-    # Astuce anti-fichier 21 bytes: Connection close + pas de stream
-    headers = {
-        "Content-Type": "application/json",
-        "Connection": "close",
-        "Accept": "audio/wav,application/octet-stream,*/*",
-    }
-
-    r = requests.post(url, json=payload, headers=headers, timeout=180)
-
-    if r.status_code != 200:
-        raise RuntimeError(f"SoVITS HTTP {r.status_code}: {r.text[:500]}")
-
-    data = r.content
-    # Check simple: un WAV commence souvent par RIFF
-    if len(data) < 2000 or (not data.startswith(b"RIFF") and b"WAVE" not in data[:32]):
-        raise RuntimeError(
-            f"SoVITS a renvoyé un contenu trop petit ou non-wav (size={len(data)}). "
-            f"Début bytes={data[:64]!r}"
-        )
-
-    out_path.write_bytes(data)
-    return str(out_path)
-
-    url = "http://127.0.0.1:9880/tts"
-
-    payload = {
-        "text": in_text,
-        "text_lang": char_config['sovits_ping_config']['text_lang'],
-        "ref_audio_path": char_config['sovits_ping_config']['ref_audio_path'],  # Make sure this path is valid
-        "prompt_text": char_config['sovits_ping_config']['prompt_text'],
-        "prompt_lang": char_config['sovits_ping_config']['prompt_lang'],
-        #"aux_ref_audio_paths": char_config['sovits_ping_config']["additional_aud"],
-        "speed_factor" : 1.3 
-    }
-
-    try:
-        response = requests.post(url, json=payload)
-        response.raise_for_status()  # throws if not 200
-
-        print(response)
-
-        # Save the response audio if it's binary
-        with open(output_wav_pth, "wb") as f:
-            f.write(response.content)
-        # print("Audio saved as output.wav")
-
-        return output_wav_pth
-
-
-    except Exception as e:
-        print("Error in sovits_gen:", e)
-        return None
-
-
-
-
-
-
-
-if __name__ == "__main__":
-
-    print("testing_generation, make sure TTS is connected and paths are correcct")
-
-    start_time = time.time()
-    output_wav_pth1 = "output2.wav"
-    path_to_aud = sovits_gen("If you hear this, you are the greatest programmer alive! I love you! haha.", output_wav_pth1)
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-    print(f"Elapsed time: {elapsed_time:.4f} seconds")
-    print(path_to_aud)
-
-
